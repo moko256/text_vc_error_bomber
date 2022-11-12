@@ -206,60 +206,61 @@ impl EventHandler for Handler {
                     }
                 }
             }
-            Interaction::MessageComponent(command) => match command.data.custom_id.as_str() {
-                ACTION_ID_BUTTON_OK => {
-                    if let Err(why) = command
-                        .message
-                        .channel_id
-                        .delete_message(ctx.http, command.message.id)
-                        .await
-                    {
-                        log::warn!("Failed to proceed OK actions: {:?}", why);
-                    }
-                }
-                ACTION_ID_BUTTON_NG => {
-                    if command
-                        .message
-                        .mentions
-                        .iter()
-                        .map(|f| f.id)
-                        .any(|f| f == command.user.id)
-                    {
-                        if let Err(why) = command
-                            .message
-                            .channel_id
-                            .delete_messages(
-                                ctx.http,
-                                [
-                                    command.message.id,
-                                    command
-                                        .message
-                                        .message_reference
-                                        .unwrap()
-                                        .message_id
-                                        .unwrap(),
-                                ],
-                            )
-                            .await
-                        {
-                            log::warn!("Failed to proceed NG actions: {:?}", why);
+            Interaction::MessageComponent(command) => {
+                if command
+                    .message
+                    .mentions
+                    .iter()
+                    .any(|f| f.id == command.user.id)
+                {
+                    match command.data.custom_id.as_str() {
+                        ACTION_ID_BUTTON_OK => {
+                            if let Err(why) = command
+                                .message
+                                .channel_id
+                                .delete_message(ctx.http, command.message.id)
+                                .await
+                            {
+                                log::warn!("Failed to proceed OK actions: {:?}", why);
+                            }
                         }
-                    } else {
-                        if let Err(why) = command
-                        .create_interaction_response(ctx.http, |b| {
-                            b.kind(InteractionResponseType::ChannelMessageWithSource)
-                                .interaction_response_data(|d|
-                                    d.content("この操作は投稿者だけ可能です")
-                                        .flags(serenity::model::application::interaction::MessageFlags::EPHEMERAL)
+                        ACTION_ID_BUTTON_NG => {
+                            if let Err(why) = command
+                                .message
+                                .channel_id
+                                .delete_messages(
+                                    ctx.http,
+                                    [
+                                        command.message.id,
+                                        command
+                                            .message
+                                            .message_reference
+                                            .unwrap()
+                                            .message_id
+                                            .unwrap(),
+                                    ],
                                 )
-                        })
-                        .await{
-                            log::warn!("Failed to post a warning of actions: {:?}", why);
+                                .await
+                            {
+                                log::warn!("Failed to proceed NG actions: {:?}", why);
+                            }
                         }
+                        _ => (),
                     }
+                } else {
+                    if let Err(why) = command
+                            .create_interaction_response(ctx.http, |b| {
+                                b.kind(InteractionResponseType::ChannelMessageWithSource)
+                                    .interaction_response_data(|d|
+                                        d.content("この操作は投稿者だけ可能です")
+                                            .flags(serenity::model::application::interaction::MessageFlags::EPHEMERAL)
+                                    )
+                            })
+                            .await{
+                                log::warn!("Failed to post a warning of actions: {:?}", why);
+                            }
                 }
-                _ => (),
-            },
+            }
             _ => (),
         }
     }
