@@ -140,7 +140,7 @@ impl EventHandler for Handler {
                     .channel_id
                     .send_message(ctx.http, |msg| {
                         msg.reference_message(&new_message)
-                            .content("VC用テキストチャットじゃない所に誤爆していませんか？")
+                            .content("警告：VC用テキストチャットじゃない所に誤爆していませんか？")
                             .allowed_mentions(|a| {
                                 a.replied_user(true)
                                     .parse(serenity::builder::ParseValue::Users)
@@ -148,12 +148,12 @@ impl EventHandler for Handler {
                             .components(|c| {
                                 c.create_action_row(|row| {
                                     row.create_button(|b| {
-                                        b.label("問題ない")
+                                        b.label("問題ない (警告削除)")
                                             .custom_id(ACTION_ID_BUTTON_OK)
                                             .style(ButtonStyle::Secondary)
                                     })
                                     .create_button(|b| {
-                                        b.label("誤爆した　闇に葬る")
+                                        b.label("闇に葬る (警告・投稿削除)")
                                             .custom_id(ACTION_ID_BUTTON_NG)
                                             .style(ButtonStyle::Danger)
                                     })
