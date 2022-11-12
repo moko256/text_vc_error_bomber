@@ -73,7 +73,7 @@ impl EventHandler for Handler {
             log::warn!("Failed to register the slash commands: {:?}", why);
         }
 
-        ctx.set_activity(Activity::watching("VCに入った人の行動"))
+        ctx.set_activity(Activity::watching("テキストチャンネル"))
             .await;
 
         log::info!("Ready.");
