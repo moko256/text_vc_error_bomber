@@ -175,19 +175,32 @@ impl EventHandler for Handler {
         match interaction {
             Interaction::ApplicationCommand(command) => {
                 if command.data.options[0].name == ACTION_CMD_STATUS {
-                    let msg = format!(
-                        "channel_names: {:?}\nuser_vc_pairs: {:?}",
-                        data.channel_names, data.user_vc_pairs
-                    );
+                    let mut buf = String::new();
+                    buf.push_str("channel_names:\nguild_id,channel_id,name");
+                    for ((guild_id, ch_id), name) in &data.channel_names {
+                        buf.push_str(&format!("{},{},{}\n", guild_id.0, ch_id.0, name));
+                    }
+                    buf.push_str("user_vc_pairs:\nuser_id,guild_id,channel_id");
+                    for (user_id, (guild_id, ch_id)) in &data.user_vc_pairs {
+                        buf.push_str(&format!("{},{},{}\n", user_id.0, guild_id.0, ch_id.0));
+                    }
+
+                    log::info!("{}", buf);
+
+                    let msg = if buf.chars().count() <= 2000 {
+                        &buf
+                    } else {
+                        "内容が2000 Unicode Code Pointを越えました。ログを参照してください。"
+                    };
 
                     if let Err(why) = command
-                    .create_interaction_response(ctx.http, |b| {
-                        b.kind(InteractionResponseType::ChannelMessageWithSource)
-                            .interaction_response_data(|d|
-                                d.content(msg)
-                                    .flags(serenity::model::application::interaction::MessageFlags::EPHEMERAL)
-                        )
-                    })
+                        .create_interaction_response(ctx.http, |b| {
+                            b.kind(InteractionResponseType::ChannelMessageWithSource)
+                                .interaction_response_data(|d|
+                                    d.content(msg)
+                                        .flags(serenity::model::application::interaction::MessageFlags::EPHEMERAL)
+                            )
+                        })
                     .await {
                         log::warn!("Failed to post a status: {:?}", why);
                     }
