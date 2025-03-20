@@ -2,29 +2,36 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::hash::Hash;
 
+use async_trait::async_trait;
+
 /// The model impl.
-pub struct Model<GuildId, ChannelId, UserId>
+pub struct Model<GuildId, ChannelId, UserId, AssocRepositotyImpl>
 where
     GuildId: Eq + Hash,
     ChannelId: Eq + Hash,
     UserId: Eq + Hash,
+    AssocRepositotyImpl: AssocRepositoty<GuildId>,
 {
     pub channel_names: HashMap<(GuildId, ChannelId), String>,
     pub user_vc_pairs: HashMap<UserId, (GuildId, ChannelId)>,
+    assoc_repo: AssocRepositotyImpl,
 }
 
-impl<GuildId, ChannelId, UserId> Model<GuildId, ChannelId, UserId>
+impl<GuildId, ChannelId, UserId, AssocRepositotyImpl>
+    Model<GuildId, ChannelId, UserId, AssocRepositotyImpl>
 where
     GuildId: Eq + Hash,
     ChannelId: Eq + Hash,
     UserId: Eq + Hash,
+    AssocRepositotyImpl: AssocRepositoty<GuildId>,
 {
     #[inline]
     #[must_use]
-    pub fn new() -> Self {
-        Model::<GuildId, ChannelId, UserId> {
+    pub fn create(assoc_repo: AssocRepositotyImpl) -> Self {
+        Model::<GuildId, ChannelId, UserId, AssocRepositotyImpl> {
             channel_names: HashMap::new(),
             user_vc_pairs: HashMap::new(),
+            assoc_repo: assoc_repo,
         }
     }
 
@@ -105,13 +112,10 @@ enum ChannelDeAssocError {
     },
 }
 
+#[async_trait]
 trait AssocRepositoty<GuildId> {
-    fn add_or_update(guild_id: GuildId, vc_ch_name: String, text_ch_name: String);
-    fn remove(
-        guild_id: GuildId,
-        vc_ch_name: String,
-        text_ch_name: String,
-    ) -> Result<(), ChannelDeAssocError>;
+    async fn add_or_update(guild_id: GuildId, vc_ch_name: String, text_ch_name: String);
+    async fn remove(guild_id: GuildId, vc_ch_name: String) -> Result<(), ChannelDeAssocError>;
 }
 
 #[test]
